@@ -219,6 +219,10 @@ def main():
         else:
             st.error("Please provide a valid ingredient name and weight.")
 
+    if st.button("Generate Shopping List"):
+        generate_shopping_list()
+        st.success("Shopping list generated successfully!")
+
 
     
 
