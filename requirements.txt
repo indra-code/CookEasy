@@ -1,0 +1,7 @@
+google-generativeai
+python-dotenv
+langchain
+langchain_google_genai
+NumPy
+mysql-connector-python
+streamlit
