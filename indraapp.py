@@ -7,6 +7,8 @@ import base64
 import os
 import mysql.connector
 import streamlit as st
+
+
 load_dotenv()
 key = os.getenv("GOOGLE_API_KEY")
 pwd = os.getenv("SQL_PASSWORD")
@@ -16,14 +18,13 @@ db = mysql.connector.connect(
     host = "localhost",
     user = "root",
     passwd = pwd,
-    database = "testdatabase"
+    database = "sqproj"
 )
 mycursor = db.cursor()
-def get_base64(path):
-    with open(path,'rb') as f:
-        return base64.b64encode(f.read()).decode('utf-8')
-base64_img = get_base64('download2.jpg')
-def get_dish_name_description():
+def get_base64(img):
+    return base64.b64encode(img.read()).decode()
+#base64_img = get_base64('download1.jpg')
+def get_dish_name_description(base64_img):
     prompt_template = '''
         You are an advanced food recognition AI that excels in identifying dishes from images and providing concise descriptions. Your expertise lies in accurately naming various cuisines and delivering a brief yet informative overview in just three lines, ensuring precision and clarity in your responses.
 
@@ -49,7 +50,7 @@ def get_dish_name_description():
         mycursor.execute(f"INSERT INTO fooditem(dish_name,dish_description) VALUES(%s,%s)",(ls_res[i],ls_res[i+1]))
         db.commit()
         i+=2
-def get_prompt_run_model(numberOfPeople):
+def get_prompt_run_model(numberOfPeople, base64_img):
     prompt_template = f'''
     You are an advanced image analysis assistant with expertise in identifying various dishes and their ingredients. Your capabilities allow you to accurately recognize food items and list all associated ingredients in a clear and concise manner.
 
@@ -144,6 +145,21 @@ SET
         ELSE mi.unit
     END
 WHERE mi.ingredient_id = i.ingredient_id;
+SET
+    mi.weight = CASE
+        WHEN mi.weight > i.weight AND mi.unit = i.unit THEN mi.weight - i.weight
+        WHEN mi.weight <= i.weight AND mi.unit = i.unit THEN 0
+        WHEN mi.weight < i.weight AND i.unit = 'ml' AND mi.unit = 'l' AND mi.weight - (i.weight / 1000) > 1  THEN  mi.weight - (i.weight / 1000) 
+        WHEN mi.weight < i.weight AND i.unit = 'ml' AND mi.unit = 'l' AND mi.weight - (i.weight / 1000) < 1  THEN  (mi.weight - (i.weight / 1000))*1000 
+        WHEN mi.weight > i.weight AND i.unit = 'l' AND mi.unit = 'ml' THEN 0
+        ELSE mi.weight
+    END,
+    mi.unit = CASE
+        WHEN i.unit = 'ml' AND  mi.unit = 'l' AND mi.weight - (i.weight / 1000) < 1 THEN 'ml'
+        WHEN i.unit = 'ml' AND mi.unit = 'l' AND mi.weight - (i.weight / 1000) >= 1 THEN 'l'
+        ELSE mi.unit
+    END
+WHERE mi.ingredient_id = i.ingredient_id;
 
 ''')
 
@@ -157,13 +173,67 @@ def sql():
     if ing_id:
         mycursor.execute(f"UPDATE my_ingredients SET ingredient_id = %s WHERE my_ingredient = %s AND ingredient_id IS NULL",(ing_id,"mud"))
     db.commit()
+
+
 def main():
+
+    st.title("Welcome to Cookeasy!!")
+    st.caption("Your AI guide to an easier cooking and shopping experience")
+    base64_img = None
     
-#sql()
-#get_prompt_run_model(4)
-#get_dish_name_description()
-#insert_available_item("chicken",200,"g")
-#update_user_inventory()
+
+    with st.sidebar:
+
+        st.subheader("Enter an image of the dish you want to make") 
+
+        uploaded_file = st.file_uploader("Upload the image (jpg or png)", type=["jpg", "png"])
+
+        if uploaded_file is not None:
+        
+            base64_img = get_base64(uploaded_file)
+            st.success("Image uploaded successfully.")
+
+    if st.button("Get dish name and description"):
+        if base64_img is not None:
+            get_dish_name_description(base64_img)
+        else:
+            st.error("Please upload an image before processing.")
+
+    number_of_people = st.number_input("Enter the number of people you want to cook for", min_value=1, step=1, value=1)
+
+    if st.button("Get ingredients for selected number of people"):
+        if base64_img is not None:
+            get_prompt_run_model(number_of_people, base64_img) 
+        else:
+            st.error("Please upload an image before processing.")
+    
+    st.subheader("Insert Available Item")
+    item = st.text_input("Ingredient Name")
+    weight = st.number_input("Weight (in grams)", min_value=0, step=1)
+    unit = st.selectbox("Unit", ["g", "kg", "ml", "L", "nos"])
+    
+    if st.button("Insert Item"):
+        if item and weight > 0:
+            insert_available_item(item, weight, unit)
+            st.success(f"Item '{item}' with weight {weight} {unit} has been added.")
+        else:
+            st.error("Please provide a valid ingredient name and weight.")
+
+    if st.button("Generate Shopping List"):
+        generate_shopping_list()
+        st.success("Shopping list generated successfully!")
+
+
+    
+
+
+    #sql()
+    #get_prompt_run_model(4)
+    #get_dish_name_description()
+    #insert_available_item("chicken",200,"g")
+    #insert_available_item("fish",50,"g")
+    #update_user_inventory()
+    #generate_shopping_list()
 if __name__ == "__main__":
     main()
 
