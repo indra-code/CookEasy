@@ -18,7 +18,7 @@ db = mysql.connector.connect(
     host = "localhost",
     user = "root",
     passwd = pwd,
-    database = "sqproj"
+    database = "testdatabase"
 )
 mycursor = db.cursor()
 def get_base64(img):
@@ -47,9 +47,14 @@ def get_dish_name_description(base64_img):
     print(ls_res)
     i = 0
     while(i<len(ls_res)):
-        mycursor.execute(f"INSERT INTO fooditem(dish_name,dish_description) VALUES(%s,%s)",(ls_res[i],ls_res[i+1]))
+        mycursor.execute(f"INSERT IGNORE INTO fooditem(dish_name,dish_description) VALUES(%s,%s)",(ls_res[i],ls_res[i+1]))
         db.commit()
         i+=2
+    mycursor.execute(f"SELECT dish_description from fooditem WHERE dish_name=%s",(ls_res[0],))
+    r = mycursor.fetchone()
+    dish_desc = r[0]
+    #print(dish_desc)
+    return dish_desc
 def get_prompt_run_model(numberOfPeople, base64_img):
     prompt_template = f'''
     You are an advanced image analysis assistant with expertise in identifying various dishes and their ingredients. Your capabilities allow you to accurately recognize food items and list all associated ingredients in a clear and concise manner.
@@ -99,7 +104,7 @@ def insert_available_item(item,weight,unit):
     res = mycursor.fetchone()
     if res:
         ing_id = res[0]
-        mycursor.execute(f"INSERT INTO my_ingredients(ingredient_id,my_ingredient,weight,unit) VALUES(%s,%s,%s,%s)",(ing_id,item,weight,unit))
+        mycursor.execute(f"INSERT INTO my_ingredients(ingredient_id,my_ingredient,weight,unit) VALUES(%s,%s,%s,%s) ON DUPLICATE KEY UPDATE my_ingredient = VALUES(my_ingredient),weight = weight + VALUES(weight),unit = VALUES(unit);",(ing_id,item,weight,unit))
         db.commit()
     else:
         mycursor.execute(f"INSERT INTO my_ingredients(my_ingredient,weight,unit) VALUES(%s,%s,%s)",(item,weight,unit))
@@ -126,42 +131,48 @@ def generate_shopping_list():
                         OR (mi.weight > i.weight AND i.unit = 'kg' AND mi.unit = 'g')
                         ''')
 def update_user_inventory():
-    mycursor.execute('''
-SET SQL_SAFE_UPDATES = 0;
-UPDATE my_ingredients mi
-INNER JOIN ingredients i ON mi.ingredient_id = i.ingredient_id
-SET
-    mi.weight = CASE
-        WHEN mi.weight > i.weight AND mi.unit = i.unit THEN mi.weight - i.weight
-        WHEN mi.weight <= i.weight AND mi.unit = i.unit THEN 0
-        WHEN mi.weight < i.weight AND i.unit = 'g' AND mi.unit = 'kg' AND mi.weight - (i.weight / 1000) > 1  THEN  mi.weight - (i.weight / 1000) 
-        WHEN mi.weight < i.weight AND i.unit = 'g' AND mi.unit = 'kg' AND mi.weight - (i.weight / 1000) < 1  THEN  (mi.weight - (i.weight / 1000))*1000 
-        WHEN mi.weight > i.weight AND i.unit = 'kg' AND mi.unit = 'g' THEN 0
-        ELSE mi.weight
-    END,
-    mi.unit = CASE
-        WHEN i.unit = 'g' AND  mi.unit = 'kg' AND mi.weight - (i.weight / 1000) < 1 THEN 'g'
-        WHEN i.unit = 'g' AND mi.unit = 'kg' AND mi.weight - (i.weight / 1000) >= 1 THEN 'kg'
-        ELSE mi.unit
-    END
-WHERE mi.ingredient_id = i.ingredient_id;
-SET
-    mi.weight = CASE
-        WHEN mi.weight > i.weight AND mi.unit = i.unit THEN mi.weight - i.weight
-        WHEN mi.weight <= i.weight AND mi.unit = i.unit THEN 0
-        WHEN mi.weight < i.weight AND i.unit = 'ml' AND mi.unit = 'l' AND mi.weight - (i.weight / 1000) > 1  THEN  mi.weight - (i.weight / 1000) 
-        WHEN mi.weight < i.weight AND i.unit = 'ml' AND mi.unit = 'l' AND mi.weight - (i.weight / 1000) < 1  THEN  (mi.weight - (i.weight / 1000))*1000 
-        WHEN mi.weight > i.weight AND i.unit = 'l' AND mi.unit = 'ml' THEN 0
-        ELSE mi.weight
-    END,
-    mi.unit = CASE
-        WHEN i.unit = 'ml' AND  mi.unit = 'l' AND mi.weight - (i.weight / 1000) < 1 THEN 'ml'
-        WHEN i.unit = 'ml' AND mi.unit = 'l' AND mi.weight - (i.weight / 1000) >= 1 THEN 'l'
-        ELSE mi.unit
-    END
-WHERE mi.ingredient_id = i.ingredient_id;
+    try:
+        mycursor.execute('SET SQL_SAFE_UPDATES = 0;')
+        mycursor.execute(''' 
+        UPDATE my_ingredients mi 
+        INNER JOIN ingredients i ON mi.ingredient_id = i.ingredient_id
+        INNER JOIN (
+            SELECT ingredient_id, weight as original_weight 
+            FROM my_ingredients
+        ) orig ON orig.ingredient_id = mi.ingredient_id
+        SET
+            mi.weight = CASE
+                WHEN mi.weight > i.weight AND mi.unit = i.unit THEN mi.weight - i.weight
+                WHEN mi.weight <= i.weight AND mi.unit = i.unit THEN 0
+                WHEN mi.weight < i.weight AND i.unit = 'g' AND mi.unit = 'kg' THEN 
+                    CASE 
+                        WHEN mi.weight - (i.weight / 1000) >= 1 THEN mi.weight - (i.weight / 1000)
+                        WHEN mi.weight - (i.weight / 1000) < 1 THEN (mi.weight - (i.weight / 1000)) * 1000
+                    END
+                WHEN mi.weight < i.weight AND i.unit = 'kg' AND mi.unit = 'g' THEN 0
+                ELSE mi.weight
+            END,
+            mi.unit = CASE
+                WHEN i.unit = 'g' AND mi.unit = 'kg' AND (orig.original_weight - (i.weight / 1000)) < 1.000 THEN 'g'
+                WHEN i.unit = 'g' AND mi.unit = 'kg' AND (orig.original_weight - (i.weight / 1000)) >= 1.000 THEN 'kg'
+                WHEN mi.unit = 'g' AND i.unit = 'kg' THEN 'g'
+                WHEN mi.unit = i.unit THEN mi.unit
+                ELSE mi.unit
+            END
+        WHERE mi.ingredient_id = i.ingredient_id;
+        ''')
 
-''')
+
+        db.commit()
+    except mysql.connector.Error as err:
+        print(f"Error occurred: {err}")
+        db.rollback()
+
+def clear_ingredients():
+    mycursor.execute('SET SQL_SAFE_UPDATES = 0;')
+    mycursor.execute('''
+    DELETE FROM ingredients;
+    ''')
 
 def sql():
     mycursor.execute(f"INSERT INTO ingredients(ingredient,weight,unit) VALUES(%s,%s,%s) ON DUPLICATE KEY UPDATE ingredient = VALUES(ingredient),weight = weight + VALUES(weight),unit = VALUES(unit);",("mud",100,"g"))
@@ -180,8 +191,6 @@ def main():
     st.title("Welcome to Cookeasy!!")
     st.caption("Your AI guide to an easier cooking and shopping experience")
     base64_img = None
-    
-
     with st.sidebar:
 
         st.subheader("Enter an image of the dish you want to make") 
@@ -192,10 +201,10 @@ def main():
         
             base64_img = get_base64(uploaded_file)
             st.success("Image uploaded successfully.")
-
     if st.button("Get dish name and description"):
         if base64_img is not None:
-            get_dish_name_description(base64_img)
+             dish_desc = get_dish_name_description(base64_img)
+             st.write(f"{dish_desc}")
         else:
             st.error("Please upload an image before processing.")
 
@@ -219,9 +228,22 @@ def main():
         else:
             st.error("Please provide a valid ingredient name and weight.")
 
-    if st.button("Generate Shopping List"):
-        generate_shopping_list()
-        st.success("Shopping list generated successfully!")
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("Generate Shopping List"):
+            generate_shopping_list()
+            st.success("Shopping list generated successfully!")
+
+        if st.button("Clear list"):
+            clear_ingredients()
+            st.success("List cleared")
+
+    with col2:
+        if st.button("I have cooked the dish"):
+            update_user_inventory()
+            st.success("Great, enjoy your meal!")
+
 
 
     
