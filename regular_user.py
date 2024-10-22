@@ -2,7 +2,7 @@ import streamlit as st
 from indraapp import get_base64,get_dish_name_description,get_prompt_run_model,insert_available_item,generate_shopping_list,clear_ingredients,update_user_inventory
 from PIL import Image
 def regular_user():
-    st.title("Welcome to CookEasy!!")
+    st.title("Welcome to Cookeasy!!")
     st.caption("Your AI guide to an easier cooking and shopping experience")
     base64_img = None
     with st.sidebar:
@@ -15,11 +15,15 @@ def regular_user():
             image = Image.open(uploaded_file)
             st.image(image,caption="Uploaded image",use_column_width=True)
             st.success("Image uploaded successfully.")
+
+
+
         col3,col4 = st.columns(2)
         with col3:
             st.button('View your ingredients')
         with col4:
             st.button('View your cart')
+
     if st.button("Get dish name and description"):
         if base64_img is not None:
              dish_desc = get_dish_name_description(base64_img)
@@ -31,9 +35,12 @@ def regular_user():
 
     if st.button("Get ingredients for selected number of people"):
         if base64_img is not None:
-            get_prompt_run_model(number_of_people, base64_img) 
+            ing = get_prompt_run_model(number_of_people, base64_img)
+            for i in ing:
+                st.write(f"-{i}")
         else:
             st.error("Please upload an image before processing.")
+
     
     st.subheader("Insert Available Item")
     item = st.text_input("Ingredient Name")

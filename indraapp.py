@@ -18,7 +18,7 @@ db = mysql.connector.connect(
     host = "localhost",
     user = "root",
     passwd = pwd,
-    database = "sqproj"
+    database = "testdatabase"
 )
 mycursor = db.cursor()
 def get_base64(img):
