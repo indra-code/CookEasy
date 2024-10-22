@@ -7,7 +7,7 @@ import base64
 import os
 import mysql.connector
 import streamlit as st
-
+from PIL import Image
 
 load_dotenv()
 key = os.getenv("GOOGLE_API_KEY")
@@ -196,11 +196,16 @@ def main():
         st.subheader("Enter an image of the dish you want to make") 
 
         uploaded_file = st.file_uploader("Upload the image (jpg or png)", type=["jpg", "png"])
-
-        if uploaded_file is not None:
-        
+        if uploaded_file is not None :
             base64_img = get_base64(uploaded_file)
+            image = Image.open(uploaded_file)
+            st.image(image,caption="Uploaded image",use_column_width=True)
             st.success("Image uploaded successfully.")
+        col3,col4 = st.columns(2)
+        with col3:
+            st.button('View your ingredients')
+        with col4:
+            st.button('View your cart')
     if st.button("Get dish name and description"):
         if base64_img is not None:
              dish_desc = get_dish_name_description(base64_img)
