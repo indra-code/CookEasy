@@ -18,7 +18,7 @@ db = mysql.connector.connect(
     host = "localhost",
     user = "root",
     passwd = pwd,
-    database = "testdatabase"
+    database = "sqproj"
 )
 mycursor = db.cursor()
 def get_base64(img):
@@ -99,6 +99,11 @@ def get_prompt_run_model(numberOfPeople, base64_img):
             mycursor.execute(f"UPDATE my_ingredients SET ingredient_id = %s WHERE my_ingredient = %s AND ingredient_id IS NULL",(ing_id,ls_res[i]))
         db.commit()
         i+=3
+    mycursor.execute(f"SELECT ingredient from ingredients;")
+    r = mycursor.fetchall()
+    ingredients = [item[0] for item in r]
+    #print(dish_desc)
+    return ingredients
 def insert_available_item(item,weight,unit):
     mycursor.execute(f"SELECT ingredient_id FROM ingredients WHERE ingredient = %s",(item,))
     res = mycursor.fetchone()
@@ -201,11 +206,15 @@ def main():
             image = Image.open(uploaded_file)
             st.image(image,caption="Uploaded image",use_column_width=True)
             st.success("Image uploaded successfully.")
+
+
+
         col3,col4 = st.columns(2)
         with col3:
             st.button('View your ingredients')
         with col4:
             st.button('View your cart')
+
     if st.button("Get dish name and description"):
         if base64_img is not None:
              dish_desc = get_dish_name_description(base64_img)
@@ -217,9 +226,12 @@ def main():
 
     if st.button("Get ingredients for selected number of people"):
         if base64_img is not None:
-            get_prompt_run_model(number_of_people, base64_img) 
+            ing = get_prompt_run_model(number_of_people, base64_img)
+            for i in ing:
+                st.write(f"-{i}")
         else:
             st.error("Please upload an image before processing.")
+
     
     st.subheader("Insert Available Item")
     item = st.text_input("Ingredient Name")
