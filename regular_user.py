@@ -1,5 +1,5 @@
 import streamlit as st
-from indraapp import get_base64,get_dish_name_description,get_prompt_run_model,insert_available_item,generate_shopping_list,clear_ingredients,update_user_inventory,get_your_ing,get_shopping_list_ing
+from sql_functions import get_base64,get_dish_name_description,get_prompt_run_model,insert_available_item,generate_shopping_list,clear_ingredients,update_user_inventory,get_your_ing,get_shopping_list_ing
 from PIL import Image
 import pandas as pd
 def regular_user():
