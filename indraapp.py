@@ -104,6 +104,16 @@ def get_prompt_run_model(numberOfPeople, base64_img):
     ingredients = [item[0] for item in r]
     #print(dish_desc)
     return ingredients
+def get_your_ing():
+    mycursor.execute(f"SELECT my_ingredient,weight,unit from my_ingredients;")
+    r = mycursor.fetchall()
+    ingredients = [item for item in r]
+    return ingredients
+def get_shopping_list_ing():
+    mycursor.execute(f"SELECT i.ingredient,s.weight,s.unit FROM ingredients i INNER JOIN shoppinglist s ON i.ingredient_id = s.ingredient_id;")
+    r = mycursor.fetchall()
+    ingredients = [item for item in r]
+    return ingredients
 def insert_available_item(item,weight,unit):
     mycursor.execute(f"SELECT ingredient_id FROM ingredients WHERE ingredient = %s",(item,))
     res = mycursor.fetchone()
@@ -167,7 +177,7 @@ def update_user_inventory():
         WHERE mi.ingredient_id = i.ingredient_id;
         ''')
 
-
+        mycursor.execute('DELETE FROM my_ingredients WHERE weight=0;')
         db.commit()
     except mysql.connector.Error as err:
         print(f"Error occurred: {err}")
@@ -175,9 +185,9 @@ def update_user_inventory():
 
 def clear_ingredients():
     mycursor.execute('SET SQL_SAFE_UPDATES = 0;')
-    mycursor.execute('''
-    DELETE FROM ingredients;
-    ''')
+    mycursor.execute('UPDATE my_ingredients SET ingredient_id = NULL;')
+    mycursor.execute('DELETE FROM shoppinglist;')
+    mycursor.execute('DELETE FROM ingredients;')
 
 def sql():
     mycursor.execute(f"INSERT INTO ingredients(ingredient,weight,unit) VALUES(%s,%s,%s) ON DUPLICATE KEY UPDATE ingredient = VALUES(ingredient),weight = weight + VALUES(weight),unit = VALUES(unit);",("mud",100,"g"))

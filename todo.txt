@@ -1,0 +1,2 @@
+-handling liquid items (shopping list and updation)
+- add triggers,procedures and functions
