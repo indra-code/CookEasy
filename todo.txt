@@ -1,2 +1,23 @@
 -handling liquid items (shopping list and updation)
 - add triggers,procedures and functions
+
+Triggers added:
+CREATE DEFINER=`root`@`localhost` TRIGGER `my_ingredients_AFTER_INSERT` AFTER INSERT ON `my_ingredients` FOR EACH ROW BEGIN
+    INSERT INTO shoppinglist (ingredient_id, weight, unit)
+    SELECT
+        i.ingredient_id,
+        CASE
+            WHEN NEW.weight IS NULL THEN i.weight
+            WHEN NEW.unit = i.unit THEN i.weight - NEW.weight
+            WHEN i.unit = 'kg' AND NEW.unit = 'g' AND (i.weight - (NEW.weight / 1000)) > 1 THEN i.weight - (NEW.weight / 1000)
+            WHEN i.unit = 'kg' AND NEW.unit = 'g' AND (i.weight - (NEW.weight / 1000)) < 1 THEN (i.weight - (NEW.weight / 1000)) * 1000
+            ELSE i.weight
+        END AS weight,
+        CASE
+            WHEN i.unit = 'kg' AND NEW.unit = 'g' AND (i.weight - (NEW.weight / 1000)) < 1 THEN 'g'
+            ELSE i.unit
+        END AS unit
+    FROM ingredients i
+    WHERE i.ingredient_id = NEW.ingredient_id
+    AND (NEW.weight IS NULL OR NEW.weight < i.weight);
+END

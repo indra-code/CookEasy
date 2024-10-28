@@ -1,6 +1,7 @@
 import streamlit as st
 from regular_user import regular_user
 from admin_user import admin_user
+from loginpage import login
 def main():
     if 'page' not in st.session_state:
         st.session_state.page = None
@@ -10,7 +11,7 @@ def main():
     if st.session_state.loginbtns:
         with col1:
             if st.button('User Login'):
-                st.session_state.page = 'regular_user'
+                st.session_state.page = 'login'
                 st.session_state.loginbtns = False
                 st.rerun()
         with col2:
@@ -23,5 +24,7 @@ def main():
         regular_user()
     elif st.session_state.page == 'admin_user':
         admin_user()
+    elif st.session_state.page=='login':
+        login()
 if __name__=='__main__':
     main()

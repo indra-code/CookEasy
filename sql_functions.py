@@ -8,19 +8,15 @@ import os
 import mysql.connector
 import streamlit as st
 from PIL import Image
-
+from sql_connection import mysql_connect
 load_dotenv()
 key = os.getenv("GOOGLE_API_KEY")
-pwd = os.getenv("SQL_PASSWORD")
 genai.configure(api_key = key)
 model = ChatGoogleGenerativeAI(model = 'models/gemini-1.5-flash-latest',temperature = 0)
-db = mysql.connector.connect(
-    host = "localhost",
-    user = "root",
-    passwd = pwd,
-    database = "testdatabase"
-)
-mycursor = db.cursor()
+if 'db_state' not in st.session_state or 'mycursor_state' not in st.session_state:
+    mysql_connect()
+db = st.session_state.db_state
+mycursor = st.session_state.mycursor_state
 def get_base64(img):
     return base64.b64encode(img.read()).decode()
 #base64_img = get_base64('download1.jpg')
