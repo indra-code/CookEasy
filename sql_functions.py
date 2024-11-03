@@ -46,11 +46,12 @@ def get_dish_name_description(base64_img):
         mycursor.execute(f"INSERT IGNORE INTO fooditem(dish_name,dish_description) VALUES(%s,%s)",(ls_res[i],ls_res[i+1]))
         db.commit()
         i+=2
-    mycursor.execute(f"SELECT dish_description from fooditem WHERE dish_name=%s",(ls_res[0],))
-    r = mycursor.fetchone()
-    dish_desc = r[0]
+    mycursor.execute(f"SELECT food_item_id,dish_name,dish_description from fooditem WHERE dish_name=%s",(ls_res[0],))
+    r = mycursor.fetchall()
+    print("R: ",r)
+    dish = [item for item in r]
     #print(dish_desc)
-    return dish_desc
+    return dish
 def get_prompt_run_model(numberOfPeople, base64_img):
     prompt_template = f'''
     You are an advanced image analysis assistant with expertise in identifying various dishes and their ingredients. Your capabilities allow you to accurately recognize food items and list all associated ingredients in a clear and concise manner.
@@ -95,9 +96,9 @@ def get_prompt_run_model(numberOfPeople, base64_img):
             mycursor.execute(f"UPDATE my_ingredients SET ingredient_id = %s WHERE my_ingredient = %s AND ingredient_id IS NULL",(ing_id,ls_res[i]))
         db.commit()
         i+=3
-    mycursor.execute(f"SELECT ingredient from ingredients;")
+    mycursor.execute(f"SELECT ingredient,weight,unit from ingredients;")
     r = mycursor.fetchall()
-    ingredients = [item[0] for item in r]
+    ingredients = [item for item in r]
     #print(dish_desc)
     return ingredients
 def get_your_ing():
@@ -118,7 +119,7 @@ def insert_available_item(item,weight,unit):
         mycursor.execute(f"INSERT INTO my_ingredients(ingredient_id,my_ingredient,weight,unit) VALUES(%s,%s,%s,%s) ON DUPLICATE KEY UPDATE my_ingredient = VALUES(my_ingredient),weight = weight + VALUES(weight),unit = VALUES(unit);",(ing_id,item,weight,unit))
         db.commit()
     else:
-        mycursor.execute(f"INSERT INTO my_ingredients(my_ingredient,weight,unit) VALUES(%s,%s,%s)",(item,weight,unit))
+        mycursor.execute(f"INSERT INTO my_ingredients(my_ingredient,weight,unit) VALUES(%s,%s,%s) ON DUPLICATE KEY UPDATE my_ingredient = VALUES(my_ingredient),weight = weight + VALUES(weight),unit = VALUES(unit);",(item,weight,unit))
         db.commit()
 def generate_shopping_list():
     mycursor.execute('''INSERT INTO shoppinglist (ingredient_id, weight, unit)
@@ -141,37 +142,38 @@ def generate_shopping_list():
                         OR mi.weight < i.weight
                         OR (mi.weight > i.weight AND i.unit = 'kg' AND mi.unit = 'g')
                         ''')
-def update_user_inventory():
+def update_user_inventory(dish_id):
     try:
         mycursor.execute('SET SQL_SAFE_UPDATES = 0;')
-        mycursor.execute(''' 
-        UPDATE my_ingredients mi 
-        INNER JOIN ingredients i ON mi.ingredient_id = i.ingredient_id
-        INNER JOIN (
-            SELECT ingredient_id, weight as original_weight 
-            FROM my_ingredients
-        ) orig ON orig.ingredient_id = mi.ingredient_id
-        SET
-            mi.weight = CASE
-                WHEN mi.weight > i.weight AND mi.unit = i.unit THEN mi.weight - i.weight
-                WHEN mi.weight <= i.weight AND mi.unit = i.unit THEN 0
-                WHEN mi.weight < i.weight AND i.unit = 'g' AND mi.unit = 'kg' THEN 
-                    CASE 
-                        WHEN mi.weight - (i.weight / 1000) >= 1 THEN mi.weight - (i.weight / 1000)
-                        WHEN mi.weight - (i.weight / 1000) < 1 THEN (mi.weight - (i.weight / 1000)) * 1000
-                    END
-                WHEN mi.weight < i.weight AND i.unit = 'kg' AND mi.unit = 'g' THEN 0
-                ELSE mi.weight
-            END,
-            mi.unit = CASE
-                WHEN i.unit = 'g' AND mi.unit = 'kg' AND (orig.original_weight - (i.weight / 1000)) < 1.000 THEN 'g'
-                WHEN i.unit = 'g' AND mi.unit = 'kg' AND (orig.original_weight - (i.weight / 1000)) >= 1.000 THEN 'kg'
-                WHEN mi.unit = 'g' AND i.unit = 'kg' THEN 'g'
-                WHEN mi.unit = i.unit THEN mi.unit
-                ELSE mi.unit
-            END
-        WHERE mi.ingredient_id = i.ingredient_id;
-        ''')
+        mycursor.execute(f'UPDATE fooditem SET status=1 WHERE food_item_id = {dish_id}')
+        # mycursor.execute(''' 
+        # UPDATE my_ingredients mi 
+        # INNER JOIN ingredients i ON mi.ingredient_id = i.ingredient_id
+        # INNER JOIN (
+        #     SELECT ingredient_id, weight as original_weight 
+        #     FROM my_ingredients
+        # ) orig ON orig.ingredient_id = mi.ingredient_id
+        # SET
+        #     mi.weight = CASE
+        #         WHEN mi.weight > i.weight AND mi.unit = i.unit THEN mi.weight - i.weight
+        #         WHEN mi.weight <= i.weight AND mi.unit = i.unit THEN 0
+        #         WHEN mi.weight < i.weight AND i.unit = 'g' AND mi.unit = 'kg' THEN 
+        #             CASE 
+        #                 WHEN mi.weight - (i.weight / 1000) >= 1 THEN mi.weight - (i.weight / 1000)
+        #                 WHEN mi.weight - (i.weight / 1000) < 1 THEN (mi.weight - (i.weight / 1000)) * 1000
+        #             END
+        #         WHEN mi.weight < i.weight AND i.unit = 'kg' AND mi.unit = 'g' THEN 0
+        #         ELSE mi.weight
+        #     END,
+        #     mi.unit = CASE
+        #         WHEN i.unit = 'g' AND mi.unit = 'kg' AND (orig.original_weight - (i.weight / 1000)) < 1.000 THEN 'g'
+        #         WHEN i.unit = 'g' AND mi.unit = 'kg' AND (orig.original_weight - (i.weight / 1000)) >= 1.000 THEN 'kg'
+        #         WHEN mi.unit = 'g' AND i.unit = 'kg' THEN 'g'
+        #         WHEN mi.unit = i.unit THEN mi.unit
+        #         ELSE mi.unit
+        #     END
+        # WHERE mi.ingredient_id = i.ingredient_id;
+        # ''')
 
         mycursor.execute('DELETE FROM my_ingredients WHERE weight=0;')
         db.commit()

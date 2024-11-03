@@ -11,6 +11,8 @@ def regular_user():
 
         """
     st.markdown(hide_streamlit_style,unsafe_allow_html=True)
+    if 'dish_id' not in st.session_state:
+        st.session_state.dish_id = None
     with home:
         st.title("Welcome to Cookeasy!!")
         st.caption("Your AI guide to an easier cooking and shopping experience")
@@ -29,7 +31,9 @@ def regular_user():
         if st.button("Get dish name and description"):
             if base64_img is not None:
                 dish_desc = get_dish_name_description(base64_img)
-                st.write(f"{dish_desc}")
+                print("Returned items: ",dish_desc)
+                st.session_state.dish_id = dish_desc[0][0]
+                st.write(f"{dish_desc[0][2]}")
             else:
                 st.error("Please upload an image before processing.")
 
@@ -38,8 +42,10 @@ def regular_user():
         if st.button("Get ingredients for selected number of people"):
             if base64_img is not None:
                 ing = get_prompt_run_model(number_of_people, base64_img)
-                for i in ing:
-                    st.write(f"-{i}")
+                df = pd.DataFrame(
+                    ing,columns = ["ingredient","weight","unit"]
+                )
+                st.table(df)
             else:
                 st.error("Please upload an image before processing.")
 
@@ -69,7 +75,7 @@ def regular_user():
 
         with col2:
             if st.button("I have cooked the dish"):
-                update_user_inventory()
+                update_user_inventory(st.session_state.dish_id)
                 st.success("Great, enjoy your meal!")
     with your_ingredients:
         ing = get_your_ing()
