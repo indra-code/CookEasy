@@ -72,6 +72,8 @@ def get_prompt_run_model(numberOfPeople, base64_img):
     - all letters of every ingredient must be in lowercase.
     - there should be no space before the ingredient name starts.
     -do not give the weight in fractions, only decimals.
+    -The returned values should be comma seperated and formatted as ingredient name,weight,unit
+    For example milk,1,L or rice,1.5,kg
     '''
     prompt = HumanMessage(
         content = [
@@ -130,10 +132,13 @@ def generate_shopping_list():
                                 WHEN mi.unit = i.unit THEN i.weight - mi.weight
                                 WHEN i.unit = 'kg' AND mi.unit = 'g' AND (i.weight - (mi.weight / 1000)) > 1  THEN i.weight - (mi.weight / 1000)
                                 WHEN i.unit = 'kg' AND mi.unit = 'g' AND (i.weight - (mi.weight / 1000)) < 1  THEN (i.weight - (mi.weight / 1000)) * 1000
+                                WHEN i.unit = 'L' AND mi.unit = 'ml' AND (i.weight - (mi.weight / 1000)) > 1  THEN i.weight - (mi.weight / 1000)
+                                WHEN i.unit = 'L' AND mi.unit = 'ml' AND (i.weight - (mi.weight / 1000)) < 1  THEN (i.weight - (mi.weight / 1000)) * 1000
                                 ELSE i.weight
                             END AS weight,
                             CASE
                                 WHEN i.unit = 'kg' AND mi.unit = 'g' AND (i.weight - (mi.weight / 1000)) < 1 THEN 'g'
+                                WHEN i.unit = 'L' AND mi.unit = 'ml' AND (i.weight - (mi.weight / 1000)) < 1 THEN 'g'
                                 ELSE i.unit
                             END AS unit
                         FROM ingredients i
@@ -141,6 +146,7 @@ def generate_shopping_list():
                         WHERE mi.weight IS NULL
                         OR mi.weight < i.weight
                         OR (mi.weight > i.weight AND i.unit = 'kg' AND mi.unit = 'g')
+                        OR (mi.weight > i.weight AND i.unit = 'L' AND mi.unit = 'ml')
                         ''')
 def update_user_inventory(dish_id):
     try:
