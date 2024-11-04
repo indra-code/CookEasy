@@ -63,8 +63,8 @@ def get_prompt_run_model(numberOfPeople, base64_img):
     - Ensure that every ingridient in your response is seperated by commas and there should be no space after a comma.
     - The output should consist ONLY of the ingredients and their weights, with each ingredient in lowercase letters.
     - Do not include the name of the dish in the list of ingredients.
-    - The units used for liquid ngredients should be ml or L.
-    - The units used for solid ingredients should be g or kg.
+    - The units used for liquid Ingredients should ONLY AND ONLY BE ml or L.
+    - The units used for solid ingredients should be ONLY AND ONLY BE g or kg.
     - The unit used for eggs should be nos.
     - Each ingredient should be followed by its weight in grams, separated by a comma and there should be no space after the comma. If the weight exceeds 1000 grams, use kilograms (kg).
     - However the unit of measurement should be seperate from the numerical weight using commas.
@@ -72,6 +72,8 @@ def get_prompt_run_model(numberOfPeople, base64_img):
     - all letters of every ingredient must be in lowercase.
     - there should be no space before the ingredient name starts.
     -do not give the weight in fractions, only decimals.
+    -The returned values should be comma seperated and formatted as ingredient name,weight,unit
+    -DO NOT GIVE ANY OTHER UNIT EXCEPT g,kg,ml,L
     '''
     prompt = HumanMessage(
         content = [
@@ -130,10 +132,13 @@ def generate_shopping_list():
                                 WHEN mi.unit = i.unit THEN i.weight - mi.weight
                                 WHEN i.unit = 'kg' AND mi.unit = 'g' AND (i.weight - (mi.weight / 1000)) > 1  THEN i.weight - (mi.weight / 1000)
                                 WHEN i.unit = 'kg' AND mi.unit = 'g' AND (i.weight - (mi.weight / 1000)) < 1  THEN (i.weight - (mi.weight / 1000)) * 1000
+                                WHEN i.unit = 'L' AND mi.unit = 'ml' AND (i.weight - (mi.weight / 1000)) > 1  THEN i.weight - (mi.weight / 1000)
+                                WHEN i.unit = 'L' AND mi.unit = 'ml' AND (i.weight - (mi.weight / 1000)) < 1  THEN (i.weight - (mi.weight / 1000)) * 1000
                                 ELSE i.weight
                             END AS weight,
                             CASE
                                 WHEN i.unit = 'kg' AND mi.unit = 'g' AND (i.weight - (mi.weight / 1000)) < 1 THEN 'g'
+                                WHEN i.unit = 'L' AND mi.unit = 'ml' AND (i.weight - (mi.weight / 1000)) < 1 THEN 'g'
                                 ELSE i.unit
                             END AS unit
                         FROM ingredients i
@@ -141,6 +146,7 @@ def generate_shopping_list():
                         WHERE mi.weight IS NULL
                         OR mi.weight < i.weight
                         OR (mi.weight > i.weight AND i.unit = 'kg' AND mi.unit = 'g')
+                        OR (mi.weight > i.weight AND i.unit = 'L' AND mi.unit = 'ml')
                         ''')
 def update_user_inventory(dish_id):
     try:
