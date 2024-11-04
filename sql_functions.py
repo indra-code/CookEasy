@@ -63,8 +63,8 @@ def get_prompt_run_model(numberOfPeople, base64_img):
     - Ensure that every ingridient in your response is seperated by commas and there should be no space after a comma.
     - The output should consist ONLY of the ingredients and their weights, with each ingredient in lowercase letters.
     - Do not include the name of the dish in the list of ingredients.
-    - The units used for liquid ngredients should be ml or L.
-    - The units used for solid ingredients should be g or kg.
+    - The units used for liquid Ingredients should ONLY AND ONLY BE ml or L.
+    - The units used for solid ingredients should be ONLY AND ONLY BE g or kg.
     - The unit used for eggs should be nos.
     - Each ingredient should be followed by its weight in grams, separated by a comma and there should be no space after the comma. If the weight exceeds 1000 grams, use kilograms (kg).
     - However the unit of measurement should be seperate from the numerical weight using commas.
@@ -73,7 +73,7 @@ def get_prompt_run_model(numberOfPeople, base64_img):
     - there should be no space before the ingredient name starts.
     -do not give the weight in fractions, only decimals.
     -The returned values should be comma seperated and formatted as ingredient name,weight,unit
-    For example milk,1,L or rice,1.5,kg
+    -DO NOT GIVE ANY OTHER UNIT EXCEPT g,kg,ml,L
     '''
     prompt = HumanMessage(
         content = [
