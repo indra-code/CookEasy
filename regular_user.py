@@ -3,7 +3,6 @@ from sql_functions import get_base64,get_dish_name_description,get_prompt_run_mo
 from PIL import Image
 import pandas as pd
 def regular_user():
-    home,your_ingredients,cart = st.tabs(["Home","Your Ingredients","Your cart"])
     hide_streamlit_style = """
         <style>
             #root > div:nth-child(1) > div > div > div > div > section > div {padding-top: 2rem;}
@@ -11,6 +10,7 @@ def regular_user():
 
         """
     st.markdown(hide_streamlit_style,unsafe_allow_html=True)
+    home,your_ingredients,cart = st.tabs(["Home","Your Ingredients","Your cart"])
     if 'dish_id' not in st.session_state:
         st.session_state.dish_id = None
     with home:
@@ -30,7 +30,8 @@ def regular_user():
                 st.success("Image uploaded successfully.")
             if st.button('Logout'):
                 st.session_state.userid = None
-                st.session_state.page = 'login'
+                st.session_state.page='app'
+                st.session_state.loginbtns = True
                 st.rerun()
 
         if st.button("Get dish name and description"):
