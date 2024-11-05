@@ -14,6 +14,7 @@ def regular_user():
     if 'dish_id' not in st.session_state:
         st.session_state.dish_id = None
     with home:
+        #st.write({st.session_state.userid})
         st.title("Welcome to Cookeasy!!")
         st.caption("Your AI guide to an easier cooking and shopping experience")
         base64_img = None
@@ -27,6 +28,10 @@ def regular_user():
                 image = Image.open(uploaded_file)
                 st.image(image,caption="Uploaded image",use_column_width=True)
                 st.success("Image uploaded successfully.")
+            if st.button('Logout'):
+                st.session_state.userid = None
+                st.session_state.page = 'login'
+                st.rerun()
 
         if st.button("Get dish name and description"):
             if base64_img is not None:
