@@ -24,6 +24,32 @@ CREATE DATABASE /*!32312 IF NOT EXISTS*/ `testdatabase` /*!40100 DEFAULT CHARACT
 USE `testdatabase`;
 
 --
+-- Table structure for table `admin_users`
+--
+
+DROP TABLE IF EXISTS `admin_users`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `admin_users` (
+  `admin_id` int NOT NULL AUTO_INCREMENT,
+  `username` varchar(10) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  PRIMARY KEY (`admin_id`),
+  UNIQUE KEY `username` (`username`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `admin_users`
+--
+
+LOCK TABLES `admin_users` WRITE;
+/*!40000 ALTER TABLE `admin_users` DISABLE KEYS */;
+INSERT INTO `admin_users` VALUES (1,'admin','1234');
+/*!40000 ALTER TABLE `admin_users` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `fooditem`
 --
 
@@ -135,7 +161,7 @@ CREATE TABLE `regular_users` (
   `password` varchar(255) NOT NULL,
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `username` (`username`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -242,4 +268,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-11-05  8:54:17
+-- Dump completed on 2024-11-05 14:06:59
