@@ -39,6 +39,7 @@ def regular_user():
                 dish_desc = get_dish_name_description(base64_img)
                 print("Returned items: ",dish_desc)
                 st.session_state.dish_id = dish_desc[0][0]
+                st.subheader(f"{dish_desc[0][1]}")
                 st.write(f"{dish_desc[0][2]}")
             else:
                 st.error("Please upload an image before processing.")
